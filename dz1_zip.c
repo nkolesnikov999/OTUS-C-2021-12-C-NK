@@ -1,13 +1,5 @@
 #include <stdio.h>
-
-// Функция сравнения двух массивов
-int compTemplates(const int tmp[], const int buf[], int size) {
-    for (int i = 0; i < size; i++) {
-        if (tmp[i] != buf[i])   // Проверяем поэлементно
-            return 0;           // при первом несовпадении возвращаем 0
-    }
-    return 1;
-}
+#include <string.h>
 
 int main(int argc, char* argv[]) {
 
@@ -24,11 +16,10 @@ int main(int argc, char* argv[]) {
 
     // Открываем файл и получаем указатель
     FILE *fp;
-    long long position = 0; // позиция для считывания
+    long position = 0; // позиция для считывания
     int i = 0;              // количество zip файлов
-    int ch;                 // символ
-    fpos_t *ppos;           // указатель на позицию
-    ppos = &position;
+    int ch = 0;        // символ
+
     if((fp=fopen(nfile, "rb"))==NULL) {
         //При невозможности открыть выходим с сообщением
         printf ("Cannot open file: %s\n", nfile);
@@ -36,30 +27,28 @@ int main(int argc, char* argv[]) {
     }
 
     int numChars = 4;                           // количество символов для проверки
-    int template[] = {0x50, 0x4b, 0x03, 0x04};  // сигнатура
-    int buffer[numChars];                       // буфер для проверки
+    int8_t template[] = {0x50, 0x4b, 0x03, 0x04};  // сигнатура
+    int8_t buffer[numChars];                       // буфер для проверки
     int length;                                 // длина имени zip файла
 
     while(!ferror(fp) && ch != EOF) {
         ch = fgetc (fp);
         if (ch == template[0]) {                // Если совпал первый символ
-            buffer[0] = ch;                     // записываем его в буфер
+            buffer[0] = (int8_t)ch;                     // записываем его в буфер
             for (int n = 1; n < numChars; n++)  // и считываем остальные
             {
                 ch = fgetc (fp);
-                buffer[n]= ch;
+                buffer[n]= (int8_t)ch;
             }
-            if (compTemplates(template, buffer, numChars)) {    // При совпадении буфера и сигнатуры
+            if (memcmp(template, buffer, numChars) == 0) {    // При совпадении буфера и сигнатуры
                 printf("zip file is detected - ");              // выводим сообщение
                 i++;                                            // увеличиваем кол-во zip файлов
                 position += 26;                                 // переходим на позицию длины имени файла
-                fsetpos(fp, ppos);
+                fseek( fp, position, SEEK_SET);
                 ch = fgetc (fp);                                // считываем длину
                 length= ch;
                 position += 4;                                  // переходи на позицию имени файла
-                fsetpos(fp, ppos);
-                //printf("Position - %llx \n", position);
-                //printf ("%x \n", length);
+                fseek( fp, position, SEEK_SET);
                 for (int m = 0; m < length; m++)                // считываем имя zip файла
                 {
                     ch = fgetc (fp);
@@ -70,12 +59,8 @@ int main(int argc, char* argv[]) {
             }
         }
         position++;
-        fsetpos(fp, ppos);
-        //printf ("%x %x %x %x \n", buffer[0], buffer[1], buffer[2], buffer[3]);
+        fseek( fp, position, SEEK_SET);
     }
-    //fgetpos(fp, ppos);
-    //printf("Last Position - %llx \n", *ppos);
-    //printf("i = %d \n", i);
 
     if (i == 0)
         printf("zip isn't detected \n");

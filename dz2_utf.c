@@ -85,13 +85,14 @@ int main(int argc, char* argv[])
     }
 
     int ch = 0;        // символ
-    while(!ferror(in_ptr_file) && ch != EOF) {
+    while(!ferror(in_ptr_file)) {
         ch = fgetc(in_ptr_file);            // Получаем символ из входного файла
+        if (ch == EOF)
+            break;
         if (ch < 0x80) {                    // Если меньше 128, то записываем его без изменений
             fputc( ch, out_ptr_file );
         } else {
-            int i;
-            for (i = 0; i < 64; i++) {
+            for (int i = 0; i < 64; i++) {
                 if (ch == cod_table[i]) {   // Иначе ищем символ в выбранной таблице
                     if (i < 48)             // Для 1-3 строк таблицы добавляем D0
                     {
@@ -102,10 +103,11 @@ int main(int argc, char* argv[])
                     fputc( utf8[i], out_ptr_file ); // Записываем символ в файл
                     break;
                 }
+                if (i==63)
+                    // Если символ не найден, выводим сообщение
+                    printf("Cannot find character - %x \n", ch);
             }
-            if (i==64)
-                // Если символ не найден, выводим сообщение
-                printf("Cannot find character - %x \n", ch);
+
         }
     }
 

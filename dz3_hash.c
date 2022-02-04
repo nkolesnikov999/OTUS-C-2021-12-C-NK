@@ -200,7 +200,7 @@ int main(int argc, char* argv[]) {
     FILE *file;
     int ch;
     char temp[255];
-    int j=0;
+    unsigned long j=0;
     file = fopen(nfile, "r");
 
     if(file == 0) {
@@ -214,12 +214,13 @@ int main(int argc, char* argv[]) {
         ch = fgetc(file);
         //Если буква, то в нижний регистр и в буфер
         if (isalpha(ch)) {
-            if (j > 253)
-                j = 253;
-            temp[j] = (char)tolower(ch);
-            temp[++j] = '\0';
+            //Для длинных слов будем запоминать только первые 254 буквы
+            if (j < sizeof(temp)-1) {
+                temp[j] = (char)tolower(ch);
+                temp[++j] = '\0';
+            }
         }
-            //Иначе проверяем буфер и меняем таблицу
+        //Иначе проверяем буфер и меняем таблицу
         else if (j != 0){
             //printf("%s ", temp);
             if (findAndIncrement(map, temp) == NULL) {

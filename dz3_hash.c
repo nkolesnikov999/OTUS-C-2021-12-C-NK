@@ -72,11 +72,9 @@ void raw_put(Hashmap **_map_, Entry *e) {
         }
         else {
             //Если занято, вставляем в первый свободный
-            while (map->data[index]) {
-                index++;
-                if (index >= map->arr_size) {
-                    index = 0;
-                }
+            while (map->data[index]!=NULL) {
+                hash++;
+                index = hash % map->arr_size;
             }
             map->data[index] = e;
         }
@@ -121,24 +119,16 @@ Hashmap* rehashUp(Hashmap **_map_, Entry* e) {
 Entry* findAndIncrement(Hashmap *map, K key) {
     unsigned long long hash = hashcode(key);
     size_t index = (hash % map->arr_size);
-    size_t startIndex = index;
     Entry *retVal = NULL;
 
-    if (map->data[index] != NULL) {
+    while (map->data[index] != NULL) {
         if (CMP_EQ(map->data[index]->key, key)) {
             retVal = map->data[index];
             map->data[index]->value++;
+            return retVal;
         } else {
-            while (map->data[index] == NULL || !CMP_EQ(map->data[index]->key, key)) {
-                index++;
-                if (index >= map->arr_size) {
-                    index = 0;
-                }
-                if (index == startIndex)
-                    return NULL;
-            }
-            retVal = map->data[index];
-            map->data[index]->value++;
+            hash++;
+            index = hash % map->arr_size;
         }
     }
 
@@ -193,13 +183,6 @@ void destroyHashmap(Hashmap **_map_) {
     *_map_ = NULL;
 }
 
-//Функция создания копии найденного слова
-char* initAndCopy(const char *str) {
-    char *word = (char*)malloc(strlen(str) + 1);
-    strcpy(word, str);
-    return word;
-}
-
 int main(int argc, char* argv[]) {
 
     // Получаем имя файла
@@ -209,7 +192,7 @@ int main(int argc, char* argv[]) {
         //printf("argv1 - %s\n", nfile);
     } else {
         //При отсутствии выходим с сообщением
-        printf("Please, enter a filename  - %s filename.jpg\n", argv[0]);
+        printf("Please, enter a filename  - %s filename.txt\n", argv[0]);
         return 0;
     }
 
@@ -231,14 +214,16 @@ int main(int argc, char* argv[]) {
         ch = fgetc(file);
         //Если буква, то в нижний регистр и в буфер
         if (isalpha(ch)) {
+            if (j > 253)
+                j = 253;
             temp[j] = (char)tolower(ch);
             temp[++j] = '\0';
         }
-        //Иначе проверяем буфер и меняем таблицу
+            //Иначе проверяем буфер и меняем таблицу
         else if (j != 0){
             //printf("%s ", temp);
             if (findAndIncrement(map, temp) == NULL) {
-                put(&map, initAndCopy(temp), 1);
+                put(&map, strdup(temp), 1);
             }
             //size_t hash = hashcode(temp);
             //printf("hash = %lu \n", hash);
@@ -256,4 +241,3 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-

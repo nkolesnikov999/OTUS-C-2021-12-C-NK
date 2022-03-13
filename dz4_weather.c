@@ -88,14 +88,12 @@ int main(int argc, char* argv[]) {
     // Формирует URL для поиска id города
     char str_url[256] = "https://www.metaweather.com/api/location/search/?query=";
     if (strlen(str_query) < 100) {
-        strcat(str_url, str_query);
+        strncat(str_url, str_query, strlen(str_query));
     }
     //printf("URL - %s\n", str_url);
 
     // Создаем буфер для запроса id
-    get_request main_req = {.buffer = NULL, .len = 0, .buflen = 0};
-    main_req.buffer = malloc(CHUNK_SIZE);
-    main_req.buflen = CHUNK_SIZE;
+    get_request main_req = {0};
 
     // Запрос id города в случае 0 ответа выходим
     if ( curl_request(str_url, &main_req) == 0 ) {
@@ -126,23 +124,23 @@ int main(int argc, char* argv[]) {
         json_object_object_get_ex(city, "woeid", &woeid);
         city_id = json_object_get_int(woeid);
         //printf("Woeid: %d\n", city_id);
+        json_object_put(parsed_json);
         free(main_req.buffer);
     } else {
         // Иначе выходим с сообщением
         printf("Found %lu cities with name %s. Check the name of city. \n", n_cities, str_query);
+        json_object_put(parsed_json);
         free(main_req.buffer);
         return 0;
     }
 
     // Формирует URL для вывода погоды
-    char url_weather[256] = "";
-    sprintf(url_weather, "https://www.metaweather.com/api/location/%d", city_id);
+    char url_weather[256];
+    snprintf(url_weather, sizeof(url_weather), "https://www.metaweather.com/api/location/%d", city_id);
     //printf("URL - %s\n", url_weather);
 
     // Создаем буфер для запроса погоды
-    get_request weather_req = {.buffer = NULL, .len = 0, .buflen = 0};
-    weather_req.buffer = malloc(CHUNK_SIZE);
-    weather_req.buflen = CHUNK_SIZE;
+    get_request weather_req = {0};
 
     // Запрос погоды, в случае 0 ответа выходим
     if ( curl_request(url_weather, &weather_req) == 0 ) {
@@ -178,6 +176,7 @@ int main(int argc, char* argv[]) {
     printf("Max Temp: %f\n", json_object_get_double(max_temp));
     json_object_object_get_ex(day_weather, "the_temp", &the_temp);
     printf("The Temp: %f\n", json_object_get_double(the_temp));
+    json_object_put(weather_json);
 
     // Очистка памяти для буфера запроса
     free(weather_req.buffer);
